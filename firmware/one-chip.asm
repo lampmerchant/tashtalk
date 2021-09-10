@@ -190,7 +190,7 @@ RxInterrupt
 	movwi	FSR0++		;Push it onto the queue
 	bcf	FSR0L,7		;Wrap the queue around
 	incf	UR_LEN,F	;Increment the queue length
-	movlw	B'00001011'	;If the UART receiver queue length >= 64,
+	movlw	B'00001111'	;If the UART receiver queue length >= 64,
 	movlb	2		; deassert CTS so the host stops sending us
 	btfsc	UR_LEN,6	; data
 	movwf	LATA		; "
@@ -212,11 +212,11 @@ Init
 	movwf	IOCAN
 	movwf	IOCAP
 	
-	banksel	RCSTA		;UART async mode, 800 kbps
+	banksel	RCSTA		;UART async mode, 1 MHz
 	movlw	B'01001000'
 	movwf	BAUDCON
 	clrf	SPBRGH
-	movlw	9
+	movlw	7
 	movwf	SPBRGL
 	movlw	B'00100110'
 	movwf	TXSTA
@@ -239,7 +239,7 @@ Init
 	clrf	ANSELA
 	
 	banksel	LATA		;Drivers off, CTS asserted
-	movlw	B'00001111'
+	movlw	B'00001011'
 	movwf	LATA
 	
 	banksel	TRISA		;TX, RA5,4,2 outputs, RX, RA3 inputs
@@ -270,9 +270,9 @@ AwaitNodeId
 	btfss	STATUS,C	; "
 	bra	AwaitNodeId	; "
 	movwf	UR_LEN		;Decrement the UART receiver queue size by 32
-	movlw	B'00000100'	;If the pop off the queue dropped the length
+	movlw	B'11111011'	;If the pop off the queue dropped the length
 	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	iorwf	LATA,F		; data again
+	andwf	LATA,F		; data again
 	movlb	1		;Switch to bank 1 where the node ID bitmap is
 	moviw	FSR1++		;Pop the next byte off the UART receiver queue
 	bcf	FSR1L,7		; "
@@ -381,9 +381,9 @@ AwaitCommand
 	btfsc	STATUS,Z	; loop around again
 	bra	AwaitCommand	; "
 	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'00000100'	;If the pop off the queue dropped the length
+	movlw	B'11111011'	;If the pop off the queue dropped the length
 	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	iorwf	LATA,F		; data again
+	andwf	LATA,F		; data again
 	moviw	FSR1++		;Pop the next byte off the UART receiver queue
 	bcf	FSR1L,7		; "
 	addlw	-1		;If it's one, that's the command byte for
@@ -402,9 +402,9 @@ AwaitDest
 	btfsc	STATUS,Z	; loop around again
 	bra	AwaitDest	; "
 	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'00000100'	;If the pop off the queue dropped the length
+	movlw	B'11111011'	;If the pop off the queue dropped the length
 	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	iorwf	LATA,F		; data again
+	andwf	LATA,F		; data again
 	moviw	FSR1++		;Pop the next byte off the UART receiver queue
 	bcf	FSR1L,7		; "
 	movwf	UR_DEST		;Save this byte as the loaded frame destination
@@ -418,9 +418,9 @@ AwaitSrc
 	btfsc	STATUS,Z	; loop around again
 	bra	AwaitSrc	; "
 	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'00000100'	;If the pop off the queue dropped the length
+	movlw	B'11111011'	;If the pop off the queue dropped the length
 	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	iorwf	LATA,F		; data again
+	andwf	LATA,F		; data again
 	moviw	FSR1++		;Pop the next byte off the UART receiver queue
 	bcf	FSR1L,7		; "
 	movwf	UR_SRC		;Save this byte as the loaded frame source
@@ -434,9 +434,9 @@ AwaitType
 	btfsc	STATUS,Z	; loop around again
 	bra	AwaitType	; "
 	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'00000100'	;If the pop off the queue dropped the length
+	movlw	B'11111011'	;If the pop off the queue dropped the length
 	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	iorwf	LATA,F		; data again
+	andwf	LATA,F		; data again
 	moviw	FSR1++		;Pop the next byte off the UART receiver queue
 	bcf	FSR1L,7		; "
 	movwf	UR_TYPE		;Save this byte as the loaded frame type
@@ -450,9 +450,9 @@ Await4th
 	btfsc	STATUS,Z	; loop around again
 	bra	Await4th	; "
 	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'00000100'	;If the pop off the queue dropped the length
+	movlw	B'11111011'	;If the pop off the queue dropped the length
 	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	iorwf	LATA,F		; data again
+	andwf	LATA,F		; data again
 	moviw	FSR1++		;Pop the next byte off the UART receiver queue
 	bcf	FSR1L,7		; "
 	movwf	UR_4TH		;Save this byte as the loaded frame 4th byte
@@ -466,9 +466,9 @@ Await5th
 	btfsc	STATUS,Z	; loop around again
 	bra	Await5th	; "
 	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'00000100'	;If the pop off the queue dropped the length
+	movlw	B'11111011'	;If the pop off the queue dropped the length
 	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	iorwf	LATA,F		; data again
+	andwf	LATA,F		; data again
 	moviw	FSR1++		;Pop the next byte off the UART receiver queue
 	bcf	FSR1L,7		; "
 	movwf	UR_5TH		;Save this byte as the loaded frame 5th byte
@@ -599,9 +599,9 @@ GiveUp2	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
 	decf	UR_LEN,F	;Decrement the UART receiver queue size
 	moviw	FSR1++		;Pop the next byte off the UART receiver queue
 	bcf	FSR1L,7		; "
-	movlw	B'00000100'	;If the pop off the queue dropped the length
+	movlw	B'11111011'	;If the pop off the queue dropped the length
 	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	iorwf	LATA,F		; data again
+	andwf	LATA,F		; data again
 	bra	GiveUp1		;Go back to decrement counter again
 
 ;entered with BSR = 2
@@ -1256,9 +1256,9 @@ SendFrL	movlw	B'00100000'	;34 Load pattern for inverting LocalTalk pin
 	bsf	LT_ONES,0	;21  "
 	btfsc	LT_ONES,5	;22 If the consecutive ones counter has reached
 	call	SendByteStuff	;23(-24)  five, stuff a zero
-	movlw	B'00000100'	;24 If the pop off the queue dropped the length
+	movlw	B'11111011'	;24 If the pop off the queue dropped the length
 	btfss	UR_LEN,6	;25  below 64, assert CTS so the host sends us
-	iorwf	LATA,F		;26  data again
+	andwf	LATA,F		;26  data again
 	DNOP			;27-28
 	DNOP			;29-30
 	nop			;31
@@ -1329,9 +1329,9 @@ SendDoUartSvc
 	return			;13-14
 SendDoUartCts
 	movlb	2		;07 If the UART receiver queue length >= 64,
-	movlw	B'11111011'	;08  deassert CTS so the host stops sending us
+	movlw	B'00000100'	;08  deassert CTS so the host stops sending us
 	btfsc	UR_LEN,6	;09  data
-	andwf	LATA,F		;10  "
+	iorwf	LATA,F		;10  "
 	DNOP			;11-12
 	return			;13-14
 
@@ -1872,7 +1872,7 @@ CrcLut2
 	org	0x900
 
 OutNothingSkip
-	movlw	B'00001011'	;16 If the UART receiver queue length >= 64,
+	movlw	B'00001111'	;16 If the UART receiver queue length >= 64,
 	btfsc	UR_LEN,6	;17  deassert CTS so the host stops sending us
 	movwf	PORTA		;18  data
 	movlb	7		;19  "
@@ -1926,7 +1926,7 @@ OutCheckInv
 	bra	OutLostClock	;By this point, we must assume we've lost clock
 
 EmpNothingSkip
-	movlw	B'00001011'	;16 If the UART receiver queue length >= 64,
+	movlw	B'00001111'	;16 If the UART receiver queue length >= 64,
 	btfsc	UR_LEN,6	;17  deassert CTS so the host stops sending us
 	movwf	PORTA		;18  data
 	movlb	7		;19  "
@@ -1973,7 +1973,7 @@ EmpCheckInv
 	bra	EmpLostClock	;By this point, we must assume we've lost clock
 
 InNothingSkip
-	movlw	B'00001011'	;16 If the UART receiver queue length >= 64,
+	movlw	B'00001111'	;16 If the UART receiver queue length >= 64,
 	btfsc	UR_LEN,6	;17  deassert CTS so the host stops sending us
 	movwf	PORTA		;18  data
 	movlb	7		;19  "
@@ -2084,7 +2084,7 @@ InFErr
 	bcf	FSR0L,7		;10 Wrap the queue around
 	btfsc	STATUS,C	;11 If there was a byte waiting from the UART,
 	incf	UR_LEN,F	;12  increment the queue length
-	movlw	B'00001011'	;13 If the UART receiver queue length >= 64,
+	movlw	B'00001111'	;13 If the UART receiver queue length >= 64,
 	btfsc	UR_LEN,6	;14  deassert CTS so the host stops sending us
 	movwf	PORTA		;15  data
 	bcf	STATUS,C	;16 Check if there is a byte waiting from the
@@ -2099,7 +2099,7 @@ InFErr
 	bcf	FSR0L,7		;25 Wrap the queue around
 	btfsc	STATUS,C	;26 If there was a byte waiting from the UART,
 	incf	UR_LEN,F	;27  increment the queue length
-	movlw	B'00001011'	;28 If the UART receiver queue length >= 64,
+	movlw	B'00001111'	;28 If the UART receiver queue length >= 64,
 	btfsc	UR_LEN,6	;29  deassert CTS so the host stops sending us
 	movwf	PORTA		;30  data
 	bcf	STATUS,C	;31 Check if there is a byte waiting from the
@@ -2114,7 +2114,7 @@ InFErr
 	bcf	FSR0L,7		;40 Wrap the queue around
 	btfsc	STATUS,C	;41 If there was a byte waiting from the UART,
 	incf	UR_LEN,F	;42  increment the queue length
-	movlw	B'00001011'	;43 If the UART receiver queue length >= 64,
+	movlw	B'00001111'	;43 If the UART receiver queue length >= 64,
 	btfsc	UR_LEN,6	;44  deassert CTS so the host stops sending us
 	movwf	PORTA		;45  data	
 	movlb	7		;If there's been an inversion in the elapsed
