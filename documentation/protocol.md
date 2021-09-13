@@ -52,12 +52,12 @@ This sequence signifies a literal 0x00 byte in the frame being received.
 
 #### 0x00 0xFD - Frame Done
 
-This sequence signifies the end of a frame where no exceptional conditions occurred.
+This sequence signifies the end of a frame where no exceptional conditions occurred.  The host should regard the data preceding it as an incoming frame, process it if its CRC is correct, and await the start of a new frame.
 
 #### 0x00 0xFE - Framing Error
 
-This sequence signifies a framing error - a condition in which six consecutive '1' bits are received but cannot be interpreted as a flag byte.
+This sequence signifies a framing error - a condition in which six consecutive '1' bits are received but cannot be interpreted as a flag byte.  The host should discard the data preceding it and await the start of a new frame.
 
 #### 0x00 0xFA - Frame Aborted
 
-This sequence signifies an aborted frame - a condition where a host had been transmitting a frame but unexpectedly stopped without a concluding flag byte.
+This sequence signifies an aborted frame - a condition where a host had been transmitting a frame but unexpectedly stopped without a concluding flag byte.  The host should discard the data preceding it and await the start of a new frame.
