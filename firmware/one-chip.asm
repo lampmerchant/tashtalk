@@ -965,12 +965,12 @@ SendSyncPulse
 	movlw	B'00010000'	;34 Load pattern to turn on driver
 	iorwf	LATA,F		;00 Turn driver on
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
-	DELAY	6		;15-32
-	nop			;33
-	movlw	B'11101111'	;34 Load pattern to turn off driver
-	andwf	LATA,F		;00 Turn driver off
-	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
 	DELAY	7		;15-00
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	nop			;15
+	movlw	B'11101111'	;16 Load pattern to turn off driver
+	andwf	LATA,F		;17 Turn driver off
+	DELAY	6		;18-00
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
 	DELAY	7		;15-00
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
