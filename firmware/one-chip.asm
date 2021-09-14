@@ -259,12 +259,11 @@ Init
 	movlw	B'11001000'
 	movwf	INTCON
 	
-	bra	AwaitCommand
+	bra	PrepForNextFrame
 
 ;entered with BSR = 2
 AwaitNodeId
-	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
-	call	DealWithFrame	; regs, deal with the frame
+	call	CheckLtReceiver	;Check for and deal with receiver activity
 	movf	UR_LEN,W	;If there aren't yet 32 bytes in the UART
 	addlw	-32		; receiver queue, loop around again
 	btfss	STATUS,C	; "
@@ -375,8 +374,7 @@ AwaitNodeId
 ;entered with BSR = ?
 AwaitCommand
 	movlb	2
-	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
-	call	DealWithFrame	; regs, deal with the frame
+	call	CheckLtReceiver	;Check for and deal with receiver activity
 	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
 	btfsc	STATUS,Z	; loop around again
 	bra	AwaitCommand	; "
@@ -394,88 +392,8 @@ AwaitCommand
 	bra	AwaitNodeId	; that data
 	bra	AwaitCommand	;All other commands are considered no-ops
 
-;entered with BSR = 2
-AwaitDest
-	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
-	call	DealWithFrame	; regs, deal with the frame
-	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
-	btfsc	STATUS,Z	; loop around again
-	bra	AwaitDest	; "
-	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'11111011'	;If the pop off the queue dropped the length
-	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	andwf	LATA,F		; data again
-	moviw	FSR1++		;Pop the next byte off the UART receiver queue
-	bcf	FSR1L,7		; "
-	movwf	UR_DEST		;Save this byte as the loaded frame destination
-	;fall through
-
-;entered with BSR = 2
-AwaitSrc
-	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
-	call	DealWithFrame	; regs, deal with the frame
-	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
-	btfsc	STATUS,Z	; loop around again
-	bra	AwaitSrc	; "
-	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'11111011'	;If the pop off the queue dropped the length
-	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	andwf	LATA,F		; data again
-	moviw	FSR1++		;Pop the next byte off the UART receiver queue
-	bcf	FSR1L,7		; "
-	movwf	UR_SRC		;Save this byte as the loaded frame source
-	;fall through
-
-;entered with BSR = 2
-AwaitType
-	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
-	call	DealWithFrame	; regs, deal with the frame
-	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
-	btfsc	STATUS,Z	; loop around again
-	bra	AwaitType	; "
-	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'11111011'	;If the pop off the queue dropped the length
-	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	andwf	LATA,F		; data again
-	moviw	FSR1++		;Pop the next byte off the UART receiver queue
-	bcf	FSR1L,7		; "
-	movwf	UR_TYPE		;Save this byte as the loaded frame type
-	;fall through
-
-;entered with BSR = 2
-Await4th
-	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
-	call	DealWithFrame	; regs, deal with the frame
-	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
-	btfsc	STATUS,Z	; loop around again
-	bra	Await4th	; "
-	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'11111011'	;If the pop off the queue dropped the length
-	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	andwf	LATA,F		; data again
-	moviw	FSR1++		;Pop the next byte off the UART receiver queue
-	bcf	FSR1L,7		; "
-	movwf	UR_4TH		;Save this byte as the loaded frame 4th byte
-	;fall through
-
-;entered with BSR = 2
-Await5th
-	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
-	call	DealWithFrame	; regs, deal with the frame
-	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
-	btfsc	STATUS,Z	; loop around again
-	bra	Await5th	; "
-	decf	UR_LEN,F	;Decrement the UART receiver queue size
-	movlw	B'11111011'	;If the pop off the queue dropped the length
-	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
-	andwf	LATA,F		; data again
-	moviw	FSR1++		;Pop the next byte off the UART receiver queue
-	bcf	FSR1L,7		; "
-	movwf	UR_5TH		;Save this byte as the loaded frame 5th byte
-	;fall through
-
-;entered with BSR = 2
-SetUpBackoffs
+;entered with BSR = ?
+PrepForNextFrame
 	movlw	-3		;If there have been more than two collisions
 	btfsc	COL_HIST,7	; during the last eight transmissions, left-
 	addlw	1		; shift a one (up to a maximum of four) into
@@ -528,42 +446,106 @@ SetUpBackoffs
 	movwf	LBACKOFF	; backoff mask
 	movlw	33		;Set attempts counter to 32 (plus one since we
 	movwf	ATTEMPTS	; immediately decrement it)
+	bra	AwaitCommand	;We're set for the next frame, wait for it
+
+;entered with BSR = 2
+AwaitDest
+	call	CheckLtReceiver	;Check for and deal with receiver activity
+	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
+	btfsc	STATUS,Z	; loop around again
+	bra	AwaitDest	; "
+	decf	UR_LEN,F	;Decrement the UART receiver queue size
+	movlw	B'11111011'	;If the pop off the queue dropped the length
+	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
+	andwf	LATA,F		; data again
+	moviw	FSR1++		;Pop the next byte off the UART receiver queue
+	bcf	FSR1L,7		; "
+	movwf	UR_DEST		;Save this byte as the loaded frame destination
 	;fall through
 
+;entered with BSR = 2
+AwaitSrc
+	call	CheckLtReceiver	;Check for and deal with receiver activity
+	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
+	btfsc	STATUS,Z	; loop around again
+	bra	AwaitSrc	; "
+	decf	UR_LEN,F	;Decrement the UART receiver queue size
+	movlw	B'11111011'	;If the pop off the queue dropped the length
+	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
+	andwf	LATA,F		; data again
+	moviw	FSR1++		;Pop the next byte off the UART receiver queue
+	bcf	FSR1L,7		; "
+	movwf	UR_SRC		;Save this byte as the loaded frame source
+	;fall through
+
+;entered with BSR = 2
+AwaitType
+	call	CheckLtReceiver	;Check for and deal with receiver activity
+	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
+	btfsc	STATUS,Z	; loop around again
+	bra	AwaitType	; "
+	decf	UR_LEN,F	;Decrement the UART receiver queue size
+	movlw	B'11111011'	;If the pop off the queue dropped the length
+	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
+	andwf	LATA,F		; data again
+	moviw	FSR1++		;Pop the next byte off the UART receiver queue
+	bcf	FSR1L,7		; "
+	movwf	UR_TYPE		;Save this byte as the loaded frame type
+	;fall through
+
+;entered with BSR = 2
+Await4th
+	call	CheckLtReceiver	;Check for and deal with receiver activity
+	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
+	btfsc	STATUS,Z	; loop around again
+	bra	Await4th	; "
+	decf	UR_LEN,F	;Decrement the UART receiver queue size
+	movlw	B'11111011'	;If the pop off the queue dropped the length
+	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
+	andwf	LATA,F		; data again
+	moviw	FSR1++		;Pop the next byte off the UART receiver queue
+	bcf	FSR1L,7		; "
+	movwf	UR_4TH		;Save this byte as the loaded frame 4th byte
+	;fall through
+
+;entered with BSR = 2
+Await5th
+	call	CheckLtReceiver	;Check for and deal with receiver activity
+	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
+	btfsc	STATUS,Z	; loop around again
+	bra	Await5th	; "
+	decf	UR_LEN,F	;Decrement the UART receiver queue size
+	movlw	B'11111011'	;If the pop off the queue dropped the length
+	btfss	UR_LEN,6	; below 64, assert CTS so the host sends us
+	andwf	LATA,F		; data again
+	moviw	FSR1++		;Pop the next byte off the UART receiver queue
+	bcf	FSR1L,7		; "
+	movwf	UR_5TH		;Save this byte as the loaded frame 5th byte
+	bra	WaitToSendCtrl	;Prepare to send as soon as possible
+
 ;entered with BSR = ?
-SetTimer2
+TryAgain
 	decf	ATTEMPTS,F	;Decrement the attempts counter; if it's hit
 	btfsc	STATUS,Z	; zero, give up trying to transmit this frame
 	bra	GiveUp		; and if necessary drain the frame payload
-	movlb	0		;XORing together the bytes of Timer1 is a cheap
-	movf	TMR1L,W		; but reasonable way to get a 'random' number;
-	xorwf	TMR1H,W		; AND it with the local backoff mask to get our
-	andwf	LBACKOFF,W	; backoff value in multiples of 100us
-	addlw	4		;Add 400us to this for minimum interdialog gap
-	movwf	PR2		;Multiply the value in WREG by 5, because
-	lslf	WREG,W		; Timer2 will interrupt after 20us times the
-	lslf	WREG,W		; value in PR2
-	addwf	PR2,F		; "
-	decf	PR2,F		; "
-	bsf	T2CON,TMR2ON	;Activate Timer2
-	clrf	TMR2		;Reset Timer2
-	bcf	PIR1,TMR2IF	;Clear the Timer2 interrupt flag
+	call	SetTimer2	;Set Timer2 using the local backoff mask
 	;fall through
 
-;entered with BSR = 0
+;entered with BSR = ?
 WaitToSendCtrl
 	bsf	INTCON,GIE	;Reenable interrupts in case they were disabled
-	btfsc	T2CON,TMR2ON	;If Timer2 has been stopped, it means a frame
-	bra	WTSC1		; came in while we were waiting; handle it and
-	call	DealWithFrame	; defer and retry
+	movlb	0		;If Timer2 has been stopped, it means a frame
+	btfsc	T2CON,TMR2ON	; came in while we were waiting; handle it and
+	bra	WTSC1		; defer and retry
+	call	DealWithFrame	; "
 	bra	Deferred	; "
 WTSC1	bcf	INTCON,GIE	;Disable interrupts before checking Timer2
 	btfss	PIR1,TMR2IF	;Unless Timer2 has interrupted, loop around
 	bra	WaitToSendCtrl	; again
 	btfss	UR_TYPE,7	;If the loaded frame is a control frame, just
-	bra	WTSC2		; go ahead and send it and then await the next
-	call	SendControlFrame; command byte
-	bra	AwaitCommand	; "
+	bra	WTSC2		; go ahead and send it and then prepare for the
+	call	SendControlFrame; next frame
+	bra	PrepForNextFrame; "
 WTSC2	call	SendRts		;If it's a data frame, send an RTS frame first
 	movlb	0		;Set Timer2 to interrupt after 200us, the
 	movlw	9		; maximum interframe gap
@@ -579,7 +561,7 @@ WTSC2	call	SendRts		;If it's a data frame, send an RTS frame first
 ;entered with BSR = ?
 GiveUp
 	btfsc	UR_TYPE,7	;If loaded frame is a control frame, we already
-	bra	AwaitCommand	; have it in full
+	bra	PrepForNextFrame; have it in full
 	movlb	2		;If loaded frame is a data frame, we need to
 	movf	UR_4TH,W	; extract the length from the 4th and 5th bytes
 	andlw	B'00000011'	; and drain that many characters from the UART
@@ -590,9 +572,8 @@ GiveUp1	movlw	-1		;Decrement the length counter; if it was
 	addwf	LT_LENL,F	; already zero, we're done
 	addwfc	LT_LENH,F	; "
 	btfss	STATUS,C	; "
-	bra	AwaitCommand	; "
-GiveUp2	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
-	call	DealWithFrame	; regs, deal with the frame
+	bra	PrepForNextFrame; "
+GiveUp2	call	CheckLtReceiver	;Check for and deal with receiver activity
 	movf	UR_LEN,F	;If there's no data in the UART receiver queue,
 	btfsc	STATUS,Z	; loop around again
 	bra	GiveUp2		; "
@@ -608,7 +589,7 @@ GiveUp2	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
 Deferred
 	bsf	DEF_HIST,0	;We had to defer, so note that in deferral log
 	bsf	LBACKOFF,0	;Expand local backoff mask if it's zero
-	bra	SetTimer2	;And retry
+	bra	TryAgain	;And retry
 
 ;entered with BSR = ?
 Collided
@@ -616,7 +597,7 @@ Collided
 	lslf	LBACKOFF,F	;Expand local backoff mask by one bit, up to a
 	bsf	LBACKOFF,0	; maximum of 0b1111
 	bcf	LBACKOFF,4	; "
-	bra	SetTimer2	;And retry
+	bra	TryAgain	;And retry
 
 ;entered with BSR = 0
 WaitForSilence
@@ -629,7 +610,7 @@ WFS1	bcf	INTCON,GIE	;Disable interrupts before checking Timer2
 	btfss	PIR1,TMR2IF	;Unless Timer2 has interrupted, loop around
 	bra	WaitForSilence	; again
 	call	SendDataFrame	;If Timer2 has interrupted, send our broadcast
-	bra	AwaitCommand	; frame and return to await next command
+	bra	PrepForNextFrame; frame and return to await next frame
 
 ;entered with BSR = 0
 WaitForCts
@@ -638,7 +619,7 @@ WaitForCts
 	bra	WFC1		; came in while we were waiting; handle it
 	call	DealWithFrame	; "
 	btfss	FLAGS,CTS_PLS	;If the flag has been cleared, data's been sent
-	bra	AwaitCommand	; and we can return to await a new command;
+	bra	PrepForNextFrame; and we can return to await a new frame;
 	bcf	FLAGS,CTS_PLS	; otherwise consider it a collision and retry
 	bra	Collided	; "
 WFC1	btfss	PIR1,TMR2IF	;Unless Timer2 has interrupted, loop around
@@ -648,6 +629,31 @@ WFC1	btfss	PIR1,TMR2IF	;Unless Timer2 has interrupted, loop around
 
 
 ;;; LocalTalk Transmitter Subprograms ;;;
+
+SetTimer2
+	movlb	0		;XORing together the bytes of Timer1 is a cheap
+	movf	TMR1L,W		; but reasonable way to get a 'random' number;
+	xorwf	TMR1H,W		; AND it with the local backoff mask to get our
+	andwf	LBACKOFF,W	; backoff value in multiples of 100us
+	addlw	4		;Add 400us to this for minimum interdialog gap
+	movwf	PR2		;Multiply the value in WREG by 5, because
+	lslf	WREG,W		; Timer2 will interrupt after 20us times the
+	lslf	WREG,W		; value in PR2
+	addwf	PR2,F		; "
+	decf	PR2,F		; "
+	bsf	T2CON,TMR2ON	;Activate Timer2
+	clrf	TMR2		;Reset Timer2
+	bcf	PIR1,TMR2IF	;Clear the Timer2 interrupt flag
+	return
+
+CheckLtReceiver
+	btfsc	FLAGS,LR_FRM	;If there's been a change in incoming frame
+	call	DealWithFrame	; regs, deal with the frame
+	movlb	0		;If Timer2 has been stopped, it means there was
+	btfss	T2CON,TMR2ON	; activity on LocalTalk bus and we need to
+	call	SetTimer2	; reset and restart Timer2
+	movlb	2		;Callers will have had BSR set to 2
+	return
 
 DealWithFrame
 	movlb	2
