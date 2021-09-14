@@ -758,7 +758,8 @@ DealWiR	bsf	INTCON,GIE	;Reenable interrupts
 SendControlFrame
 	movlb	2
 	bcf	INTCON,GIE	;Disable interrupts
-	call	SendPreamble	;XX-25
+	call	SendSyncPulse	;XX-23 Sync pulse because frame starts a dialog
+	call	SendPreamble	;24-25
 	movf	UR_DEST,W	;26
 	movwf	LT_BUF		;27
 	DNOP			;28-29
@@ -838,7 +839,8 @@ SendDataFrame
 SendRts
 	movlb	2
 	bcf	INTCON,GIE	;Disable interrupts
-	call	SendPreamble	;XX-25
+	call	SendSyncPulse	;XX-23 Sync pulse because frame starts a dialog
+	call	SendPreamble	;24-25
 	movf	UR_DEST,W	;26
 	movwf	LT_BUF		;27
 	DNOP			;28-29
@@ -957,14 +959,37 @@ SendCts
 
 ;All subs below assume that they're being called with BSR in bank 2
 
+SendSyncPulse
+	movlw	B'00001111'	;32 Make sure driver is turned off and data out
+	andwf	LATA,F		;33  pin is ready to output 0 when turned on
+	movlw	B'00010000'	;34 Load pattern to turn on driver
+	iorwf	LATA,F		;00 Turn driver on
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	DELAY	6		;15-32
+	nop			;33
+	movlw	B'11101111'	;34 Load pattern to turn off driver
+	andwf	LATA,F		;00 Turn driver off
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	DELAY	7		;15-00
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	DELAY	7		;15-00
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	DELAY	7		;15-00
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	DELAY	7		;15-00
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	DELAY	2		;15-20
+	nop			;21
+	return			;22-23
+
 SendPreamble
-	movlw	B'01111110'	;Load the flag byte into the buffer for later
-	movwf	LT_BUF		; "
-	movlw	4		;Set the counter to send four pre-flag ones
-	movwf	LT_ONES		; "
-	movlw	B'00001111'	;Make sure driver is turned off and LocalTalk
-	andwf	LATA,F		; pin is ready to output 0 when it's turned on
-	movlw	B'00010000'	;Load pattern to turn on driver
+	movlw	B'01111110'	;26 Load flag byte into the buffer for later
+	movwf	LT_BUF		;27  "
+	movlw	4		;28 Set the counter to send four pre-flag ones
+	movwf	LT_ONES		;29  "
+	movlw	B'00001111'	;30 Make sure driver is turned off and data out
+	andwf	LATA,F		;31  pin is ready to output 0 when turned on
+	movlw	B'00010000'	;32 Load pattern to turn on driver
 SendPr1	nop			;33
 	nop			;34
 	xorwf	LATA,F		;00 Invert LocalTalk pin for clock
