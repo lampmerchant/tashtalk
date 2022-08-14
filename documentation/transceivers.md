@@ -2,7 +2,7 @@
 
 ## Background
 
-LocalTalk requires an RS-422/485 transceiver whose receiver output floats high when the bus is not being driven.
+TashTalk requires an RS-422/485 transceiver whose receiver output floats high when the bus is not being driven.
 Not all of them do!  This is a non-exhaustive list of known-good ones.
 
 ## [SN65HVD08](https://www.ti.com/product/SN65HVD08)
