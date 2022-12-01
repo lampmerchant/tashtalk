@@ -27,6 +27,11 @@ when CTS is reasserted so the queue doesn't underflow either.
 Also, "single-chip" doesn't include the separate and necessary driver/receiver chip for RS-422/485. Sorry. =)
 
 
+## Building Firmware
+
+Building the firmware requires Microchip MPASM, which is included with their development environment, MPLAB.  Note that you **must** use MPLAB X version 5.35 or earlier or MPLAB 8 as later versions of MPLAB X have removed MPASM.
+
+
 ## Projects Using It
 
 * [TashTalkHat](https://68kmla.org/bb/index.php?threads/tashtalk-single-chip-localtalk-interface.38955/page-4#post-422138)
