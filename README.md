@@ -13,7 +13,7 @@ BeagleBone or full PC, or it can be part of a larger embedded system. It slices,
 
 ## Project Status
 
-Stable.  
+Stable enough to release a v1.0.0.
 
 
 ## Caveats
