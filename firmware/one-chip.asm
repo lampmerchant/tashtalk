@@ -29,9 +29,9 @@
 ;;;                                                               ;;;
 ;                               .--------.                          ;
 ;                       Supply -|01 \/ 08|- Ground                  ;
-;    LocalTalk Out <---    RA5 -|02    07|- RA0/TX ---> UART TX     ;
+;        LocalTalk <-->    RA5 -|02    07|- RA0/TX ---> UART TX     ;
 ;    Driver Enable <---    RA4 -|03    06|- RA1/RX <--- UART RX     ;
-;     LocalTalk In --->    RA3 -|04    05|- RA2    ---> UART CTS    ;
+;            !MCLR --->    RA3 -|04    05|- RA2    ---> UART CTS    ;
 ;                               '--------'                          ;
 ;;;                                                               ;;;
 
@@ -41,11 +41,12 @@
 	list		P=PIC12F1840, F=INHX32, ST=OFF, MM=OFF, R=DEC, X=ON
 	#include	P12F1840.inc
 	errorlevel	-302	;Suppress "register not in bank 0" messages
-	__config	_CONFIG1, _FOSC_INTOSC & _WDTE_OFF & _PWRTE_ON & _MCLRE_OFF & _CP_OFF & _CPD_OFF & _BOREN_OFF & _CLKOUTEN_OFF & _IESO_OFF & _FCMEN_OFF
+	errorlevel	-224	;Suppress TRIS instruction not recommended msgs
+	__config	_CONFIG1, _FOSC_INTOSC & _WDTE_OFF & _PWRTE_ON & _MCLRE_ON & _CP_OFF & _CPD_OFF & _BOREN_OFF & _CLKOUTEN_OFF & _IESO_OFF & _FCMEN_OFF
 			;_FOSC_INTOSC	Internal oscillator, I/O on RA5
 			;_WDTE_OFF	Watchdog timer disabled
 			;_PWRTE_ON	Keep in reset for 64 ms on start
-			;_MCLRE_OFF	RA3/!MCLR is RA3
+			;_MCLRE_ON	RA3/!MCLR is !MCLR
 			;_CP_OFF	Code protection off
 			;_CPD_OFF	Data memory protection off
 			;_BOREN_OFF	Brownout reset off
@@ -192,10 +193,10 @@ RxInterrupt
 	movwi	FSR0++		;Push it onto the queue
 	bcf	FSR0L,7		;Wrap the queue around
 	incf	UR_LEN,F	;Increment the queue length
-	movlw	B'00001111'	;If the UART receiver queue length >= 64,
+	movlw	B'00000100'	;If the UART receiver queue length >= 64,
 	movlb	2		; deassert CTS so the host stops sending us
 	btfsc	UR_LEN,6	; data
-	movwf	LATA		; "
+	iorwf	LATA,F		; "
 	movlb	31		;Store the changed UART receiver push point
 	movf	FSR0L,W		; back in its shadow register so it stays the
 	movwf	FSR0L_SHAD	; same when we return from interrupt
@@ -209,8 +210,8 @@ Init
 	movlw	B'11110000'
 	movwf	OSCCON
 	
-	banksel	IOCAN		;RA3 sets IOCAN[IOCAF3] on pos/neg edge
-	movlw	B'00001000'
+	banksel	IOCAN		;RA5 sets IOCAN[IOCAF5] on pos/neg edge
+	movlw	B'00100000'
 	movwf	IOCAN
 	movwf	IOCAP
 	
@@ -244,8 +245,8 @@ Init
 	movlw	B'00001011'
 	movwf	LATA
 	
-	banksel	TRISA		;TX, RA5,4,2 outputs, RX, RA3 inputs
-	movlw	B'00001010'
+	banksel	TRISA		;TX, RA4,2 outputs, RX, RA5,3 inputs
+	movlw	B'00101010'
 	movwf	TRISA
 	
 	clrf	UR_LEN		;Set up UART receiver queue (0x2000-0x207F),
@@ -766,8 +767,7 @@ DealWiR	bsf	INTCON,GIE	;Reenable interrupts
 SendControlFrame
 	movlb	2
 	bcf	INTCON,GIE	;Disable interrupts
-	call	SendSyncPulse	;XX-23 Sync pulse because frame starts a dialog
-	call	SendPreamble	;24-25
+	call	SendSyncPreamble;XX-25 Sync pulse because frame starts a dialog
 	movf	UR_DEST,W	;26
 	movwf	LT_BUF		;27
 	DNOP			;28-29
@@ -798,7 +798,7 @@ SendControlFrame
 	DNOP			;30-31
 	call	SendPostamble	;32-XX
 	movlb	7		;Clear the inevitable IOC interrupt that came
-	bcf	IOCAF,IOCAF3	; in while (and because) we were transmitting
+	bcf	IOCAF,IOCAF5	; in while (and because) we were transmitting
 	movlb	2		; before reenabling interrupts
 	bsf	INTCON,GIE	;Reenable interrupts
 	return
@@ -839,7 +839,7 @@ SendDataFrame
 	DNOP			;30-31
 	call	SendFromQueue	;32-25 (Branches into SendPostamble)
 	movlb	7		;Clear the inevitable IOC interrupt that came
-	bcf	IOCAF,IOCAF3	; in while (and because) we were transmitting
+	bcf	IOCAF,IOCAF5	; in while (and because) we were transmitting
 	movlb	2		; before reenabling interrupts
 	bsf	INTCON,GIE	;Reenable interrupts
 	return
@@ -847,8 +847,7 @@ SendDataFrame
 SendRts
 	movlb	2
 	bcf	INTCON,GIE	;Disable interrupts
-	call	SendSyncPulse	;XX-23 Sync pulse because frame starts a dialog
-	call	SendPreamble	;24-25
+	call	SendSyncPreamble;XX-25 Sync pulse because frame starts a dialog
 	movf	UR_DEST,W	;26
 	movwf	LT_BUF		;27
 	DNOP			;28-29
@@ -880,7 +879,7 @@ SendRts
 	DNOP			;30-31
 	call	SendPostamble	;32-XX
 	movlb	7		;Clear the inevitable IOC interrupt that came
-	bcf	IOCAF,IOCAF3	; in while (and because) we were transmitting
+	bcf	IOCAF,IOCAF5	; in while (and because) we were transmitting
 	movlb	2		; before reenabling interrupts
 	bsf	INTCON,GIE	;Reenable interrupts
 	return
@@ -920,7 +919,7 @@ SendAck
 	DNOP			;30-31
 	call	SendPostamble	;32-XX
 	movlb	7		;Clear the inevitable IOC interrupt that came
-	bcf	IOCAF,IOCAF3	; in while (and because) we were transmitting
+	bcf	IOCAF,IOCAF5	; in while (and because) we were transmitting
 	movlb	2		; before reenabling interrupts
 	bsf	INTCON,GIE	;Reenable interrupts
 	return
@@ -960,24 +959,24 @@ SendCts
 	DNOP			;30-31
 	call	SendPostamble	;32-XX
 	movlb	7		;Clear the inevitable IOC interrupt that came
-	bcf	IOCAF,IOCAF3	; in while (and because) we were transmitting
+	bcf	IOCAF,IOCAF5	; in while (and because) we were transmitting
 	movlb	2		; before reenabling interrupts
 	bsf	INTCON,GIE	;Reenable interrupts
 	return
 
 ;All subs below assume that they're being called with BSR in bank 2
 
-SendSyncPulse
-	movlw	B'00001111'	;32 Make sure driver is turned off and data out
-	andwf	LATA,F		;33  pin is ready to output 0 when turned on
-	movlw	B'00010000'	;34 Load pattern to turn on driver
-	iorwf	LATA,F		;00 Turn driver on
+SendSyncPreamble
+	bcf	LATA,5		;32 Make sure LT pin is ready to output a 0
+	movlw	B'00001010'	;33 Get ready to drive LT pin
+	bsf	LATA,4		;34 Switch transceiver to drive mode
+	tris	5		;00 Drive a 0 on LT pin
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
 	DELAY	7		;15-00
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
-	nop			;15
-	movlw	B'11101111'	;16 Load pattern to turn off driver
-	andwf	LATA,F		;17 Turn driver off
+	movlw	B'00101010'	;15 Get ready to tristate LT pin
+	tris	5		;16 Tristate LT pin
+	bcf	LATA,4		;17 Switch transceiver to receive mode
 	DELAY	6		;18-00
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
 	DELAY	7		;15-00
@@ -986,35 +985,37 @@ SendSyncPulse
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
 	DELAY	7		;15-00
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
-	DELAY	2		;15-20
-	nop			;21
-	return			;22-23
+	DELAY	4		;15-26
+	nop			;27
+	;fall through
 
 SendPreamble
-	movlw	B'01111110'	;26 Load flag byte into the buffer for later
-	movwf	LT_BUF		;27  "
-	movlw	4		;28 Set the counter to send four pre-flag ones
-	movwf	LT_ONES		;29  "
-	movlw	B'00001111'	;30 Make sure driver is turned off and data out
-	andwf	LATA,F		;31  pin is ready to output 0 when turned on
-	movlw	B'00010000'	;32 Load pattern to turn on driver
-SendPr1	nop			;33
-	nop			;34
+	movlw	B'01111110'	;28 Load flag byte into the buffer for later
+	movwf	LT_BUF		;29  "
+	movlw	4		;30 Set the counter to send four pre-flag ones
+	movwf	LT_ONES		;31  "
+	bcf	LATA,5		;32 Make sure LT pin is ready to output a 0
+	movlw	B'00001010'	;33 Get ready to drive LT pin
+	bsf	LATA,4		;34 Switch transceiver to drive mode
+	tris	5		;00 Drive a 0 on LT pin
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	bra	SendPr1		;15-16 Join the pre-flag ones loop in progress
+SendPr2	DNOP			;33-34
 	xorwf	LATA,F		;00 Invert LocalTalk pin for clock
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
 	clrf	LT_CRC1		;15 Reset the running CRC registers to all
 	decf	LT_CRC1,F	;16  ones; we're going to end up doing this
-	clrf	LT_CRC2		;17  repeatedly, but it doesn't matter
+SendPr1	clrf	LT_CRC2		;17  repeatedly, but it doesn't matter
 	decf	LT_CRC2,F	;18  "
 	DELAY	3		;19-27
 	nop			;28
 	movlw	B'00100000'	;29 Load pattern for inverting LocalTalk pin
 	decfsz	LT_ONES,F	;30 Decrement pre-ones counter and loop if it
-	bra	SendPr1		;31(-32)  is not yet zero
+	bra	SendPr2		;31(-32)  is not yet zero
 	movlw	24		;32 Rotate buffer 24 times and we'll send three
 	movwf	LT_ONES		;33  flag bytes
 	movlw	B'00100000'	;34 Load pattern for inverting LocalTalk pin
-SendPr2	xorwf	LATA,F		;00 Invert LocalTalk pin for clock
+SendPr3	xorwf	LATA,F		;00 Invert LocalTalk pin for clock
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
 	movlw	B'00100000'	;15 Load pattern for inverting LocalTalk pin
 	btfss	LT_BUF,0	;16 Unless this bit is a one...
@@ -1023,13 +1024,13 @@ SendPr2	xorwf	LATA,F		;00 Invert LocalTalk pin for clock
 	btfsc	STATUS,C	;19  "
 	bsf	LT_BUF,7	;20  "
 	decfsz	LT_ONES,F	;21 Decrement the loop counter; if it's not 0
-	bra	SendPr3		;22(-23)  yet, skip the next two lines
+	bra	SendPr4		;22(-23)  yet, skip the next two lines
 	incf	LT_ONES,F	;23 Reset ones counter to be ready for SendByte
 	return			;24-25
-SendPr3	DELAY	2		;24-29
+SendPr4	DELAY	2		;24-29
 	DNOP			;30-31
 	movlw	B'00100000'	;32 Load pattern for inverting LocalTalk pin
-	bra	SendPr2		;33-34
+	bra	SendPr3		;33-34
 
 SendByte
 	movlw	B'00100000'	;34 Load pattern for inverting LocalTalk pin
@@ -1308,8 +1309,10 @@ SendPostamble
 	movwf	LT_BUF		;19  "
 	movlw	20		;20 Shift this buffer 20 times (shifting in
 	movwf	LT_ONES		;21  ones) and we'll send a flag and 13 ones
-	DELAY	4		;22-33
-SendPoL	movlw	B'00100000'	;34 Load pattern for inverting LocalTalk pin
+	DELAY	3		;22-30
+	nop			;31
+SendPoL	DNOP			;32-33
+	movlw	B'00100000'	;34 Load pattern for inverting LocalTalk pin
 	xorwf	LATA,F		;00 Invert LocalTalk pin for clock
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
 	movlw	B'00100000'	;15 Load pattern for inverting LocalTalk pin
@@ -1318,21 +1321,22 @@ SendPoL	movlw	B'00100000'	;34 Load pattern for inverting LocalTalk pin
 	lsrf	LT_BUF,F	;18 Rotate a 1 into the buffer
 	bsf	LT_BUF,7	;19  "
 	DELAY	3		;20-28
-	nop			;29
-	movlw	B'00011111'	;30 Load pattern for driving 0 on the bus
-	decfsz	LT_ONES,F	;31 Decrement the loop counter; if it's not 0
-	bra	SendPoL		;32(-33)  yet, loop to send the next bit
-	btfss	LATA,5		;33 If bus is already being driven to 0, load
-	movlw	B'00001111'	;34  pattern for turning off the driver
-	andwf	LATA,F		;00 Drive the bus to 0 or turn off the driver
-	btfss	LATA,4		;01 If driver is already off, we're done
-	return			;02  "
-	call	SendDoUartSvc	;03-04 (05-16) Service the UART receiver
-	DELAY	5		;17-31
-	DNOP			;32-33
-	movlw	B'00001111'	;34 Load pattern for turning off driver
-	andwf	LATA,F		;00 Turn off driver, end transmission
-	return
+	decfsz	LT_ONES,F	;29 Decrement the loop counter; if it's not 0
+	bra	SendPoL		;30(-31)  yet, loop to send the next bit
+	btfsc	LATA,5		;31 If the bus is currently driven to 1, we
+	bra	SendPoZ		;32(-33)  need to drive it to 0 before ending
+	movlw	B'00101010'	;33 Get ready to tristate LT pin
+	tris	5		;34 Tristate LT pin
+	bcf	LATA,4		;00 Switch transceiver to receive mode
+	return			;End transmission
+SendPoZ	nop			;34
+	bcf	LATA,5		;00 Drive bus to 0
+	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
+	DELAY	6		;15-32
+	movlw	B'00101010'	;33 Get ready to tristate LT pin
+	tris	5		;34 Tristate LT pin
+	bcf	LATA,4		;00 Switch transceiver to receive mode
+	return			;End transmission
 
 SendByteStuff
 	DELAY	3		;25-33
@@ -1466,7 +1470,7 @@ OutNothingSkip
 
 LtReceiver
 	movlb	7		;06 Ready to detect inversion
-	bcf	IOCAF,IOCAF3	;07  "
+	bcf	IOCAF,IOCAF5	;07  "
 	clrf	LR_STATE	;08 Reset receiver state
 	movlw	0xEB		;09 Don't need pop pointer here, so point FSR1
 	movwf	FSR1L		;10  to LocalTalk receiver frame registers
@@ -1488,26 +1492,26 @@ OutNothing
 
 OutCheckInv
 	bsf	STATUS,C	;22 If the IOC flag was set while the preceding
-	btfsc	IOCAF,IOCAF3	;23  code was running, this bit is a 0; in
+	btfsc	IOCAF,IOCAF5	;23  code was running, this bit is a 0; in
 	bcf	STATUS,C	;24  either case, copy it into the carry bit
-	bcf	IOCAF,IOCAF3	;25 Clear the IOC flag so we can look for clock
-	btfsc	IOCAF,IOCAF3	;26 Check if the line has inverted, indicating
+	bcf	IOCAF,IOCAF5	;25 Clear the IOC flag so we can look for clock
+	btfsc	IOCAF,IOCAF5	;26 Check if the line has inverted, indicating
 	bra	OutReceive	;27  a clock
-	btfsc	IOCAF,IOCAF3	;28  "
+	btfsc	IOCAF,IOCAF5	;28  "
 	bra	OutReceive	;29  "
-	btfsc	IOCAF,IOCAF3	;30  "
+	btfsc	IOCAF,IOCAF5	;30  "
 	bra	OutReceive	;31  "
-	btfsc	IOCAF,IOCAF3	;32  "
+	btfsc	IOCAF,IOCAF5	;32  "
 	bra	OutReceive	;33  "
-	btfsc	IOCAF,IOCAF3	;34  "
+	btfsc	IOCAF,IOCAF5	;34  "
 	bra	OutReceive	;35  "
-	btfsc	IOCAF,IOCAF3	;36  "
+	btfsc	IOCAF,IOCAF5	;36  "
 	bra	OutReceive	;37  "
-	btfsc	IOCAF,IOCAF3	;38  "
+	btfsc	IOCAF,IOCAF5	;38  "
 	bra	OutReceive	;39  "
-	btfsc	IOCAF,IOCAF3	;40  "
+	btfsc	IOCAF,IOCAF5	;40  "
 	bra	OutReceive	;41  "
-	btfsc	IOCAF,IOCAF3	;42  "
+	btfsc	IOCAF,IOCAF5	;42  "
 	bra	OutReceive	;43  "
 	bra	OutLostClock	;By this point, we must assume we've lost clock
 
@@ -1535,26 +1539,26 @@ EmpNothing
 
 EmpCheckInv
 	bsf	STATUS,C	;22 If the IOC flag was set while the preceding
-	btfsc	IOCAF,IOCAF3	;23  code was running, this bit is a 0; in
+	btfsc	IOCAF,IOCAF5	;23  code was running, this bit is a 0; in
 	bcf	STATUS,C	;24  either case, copy it into the carry bit
-	bcf	IOCAF,IOCAF3	;25 Clear the IOC flag so we can look for clock
-	btfsc	IOCAF,IOCAF3	;26 Check if the line has inverted, indicating
+	bcf	IOCAF,IOCAF5	;25 Clear the IOC flag so we can look for clock
+	btfsc	IOCAF,IOCAF5	;26 Check if the line has inverted, indicating
 	bra	EmpReceive	;27  a clock
-	btfsc	IOCAF,IOCAF3	;28  "
+	btfsc	IOCAF,IOCAF5	;28  "
 	bra	EmpReceive	;29  "
-	btfsc	IOCAF,IOCAF3	;30  "
+	btfsc	IOCAF,IOCAF5	;30  "
 	bra	EmpReceive	;31  "
-	btfsc	IOCAF,IOCAF3	;32  "
+	btfsc	IOCAF,IOCAF5	;32  "
 	bra	EmpReceive	;33  "
-	btfsc	IOCAF,IOCAF3	;34  "
+	btfsc	IOCAF,IOCAF5	;34  "
 	bra	EmpReceive	;35  "
-	btfsc	IOCAF,IOCAF3	;36  "
+	btfsc	IOCAF,IOCAF5	;36  "
 	bra	EmpReceive	;37  "
-	btfsc	IOCAF,IOCAF3	;38  "
+	btfsc	IOCAF,IOCAF5	;38  "
 	bra	EmpReceive	;39  "
-	btfsc	IOCAF,IOCAF3	;40  "
+	btfsc	IOCAF,IOCAF5	;40  "
 	bra	EmpReceive	;41  "
-	btfsc	IOCAF,IOCAF3	;42  "
+	btfsc	IOCAF,IOCAF5	;42  "
 	bra	EmpReceive	;43  "
 	bra	EmpLostClock	;By this point, we must assume we've lost clock
 
@@ -1580,31 +1584,31 @@ InNothing
 
 InCheckInv
 	bsf	STATUS,C	;22 If the IOC flag was set while the preceding
-	btfsc	IOCAF,IOCAF3	;23  code was running, this bit is a 0; in
+	btfsc	IOCAF,IOCAF5	;23  code was running, this bit is a 0; in
 	bcf	STATUS,C	;24  either case, copy it into the carry bit
-	bcf	IOCAF,IOCAF3	;25 Clear the IOC flag so we can look for clock
-	btfsc	IOCAF,IOCAF3	;26 Check if the line has inverted, indicating
+	bcf	IOCAF,IOCAF5	;25 Clear the IOC flag so we can look for clock
+	btfsc	IOCAF,IOCAF5	;26 Check if the line has inverted, indicating
 	bra	InReceive	;27  a clock
-	btfsc	IOCAF,IOCAF3	;28  "
+	btfsc	IOCAF,IOCAF5	;28  "
 	bra	InReceive	;29  "
-	btfsc	IOCAF,IOCAF3	;30  "
+	btfsc	IOCAF,IOCAF5	;30  "
 	bra	InReceive	;31  "
-	btfsc	IOCAF,IOCAF3	;32  "
+	btfsc	IOCAF,IOCAF5	;32  "
 	bra	InReceive	;33  "
-	btfsc	IOCAF,IOCAF3	;34  "
+	btfsc	IOCAF,IOCAF5	;34  "
 	bra	InReceive	;35  "
-	btfsc	IOCAF,IOCAF3	;36  "
+	btfsc	IOCAF,IOCAF5	;36  "
 	bra	InReceive	;37  "
-	btfsc	IOCAF,IOCAF3	;38  "
+	btfsc	IOCAF,IOCAF5	;38  "
 	bra	InReceive	;39  "
-	btfsc	IOCAF,IOCAF3	;40  "
+	btfsc	IOCAF,IOCAF5	;40  "
 	bra	InReceive	;41  "
-	btfsc	IOCAF,IOCAF3	;42  "
+	btfsc	IOCAF,IOCAF5	;42  "
 	bra	InReceive	;43  "
 	bra	InLostClock	;By this point, we must assume we've lost clock
 
 OutReceive
-	bcf	IOCAF,IOCAF3	;00 Ready to detect inversion
+	bcf	IOCAF,IOCAF5	;00 Ready to detect inversion
 	movlp	high OutFSA	;01 Point PCLATH to the out-of-frame FSA for 0
 	btfsc	STATUS,C	;02 Increment to the FSA for 1 if we got a 1
 	incf	PCLATH,F	;03  "
@@ -1612,7 +1616,7 @@ OutReceive
 	movwf	PCL		;05-06  "
 
 EmpReceive
-	bcf	IOCAF,IOCAF3	;00 Ready to detect inversion
+	bcf	IOCAF,IOCAF5	;00 Ready to detect inversion
 	movlp	high EmpFSA	;01 Point PCLATH to the empty-frame FSA for 0
 	btfsc	STATUS,C	;02 Increment to the FSA for 1 if we got a 1
 	incf	PCLATH,F	;03  "
@@ -1620,7 +1624,7 @@ EmpReceive
 	movwf	PCL		;05-06  "
 
 InReceive
-	bcf	IOCAF,IOCAF3	;00 Ready to detect inversion
+	bcf	IOCAF,IOCAF5	;00 Ready to detect inversion
 	movlp	high InFSA	;01 Point PCLATH to the in-frame FSA for 0
 	btfsc	STATUS,C	;02 Increment to the FSA for 1 if we got a 1
 	incf	PCLATH,F	;03  "
@@ -1656,7 +1660,7 @@ InByte2	movlb	3		;17 Transmit the received byte on the UART
 OutFErr
 EmpFErr
 InFErr
-	bcf	IOCAF,IOCAF3	;Ready to detect inversion
+	bcf	IOCAF,IOCAF5	;Ready to detect inversion
 	movlb	0		;00 Check if there is a byte waiting from the
 	bcf	STATUS,C	;01  UART
 	btfsc	PIR1,RCIF	;02  "
@@ -1704,7 +1708,7 @@ InFErr
 	btfsc	UR_LEN,6	;44  deassert CTS so the host stops sending us
 	movwf	PORTA		;45  data	
 	movlb	7		;If there's been an inversion in the elapsed
-	btfsc	IOCAF,IOCAF3	; ~1.25 bit times, the line is not yet idle and
+	btfsc	IOCAF,IOCAF5	; ~1.25 bit times, the line is not yet idle and
 	bra	OutFErr		; we should try again
 	movlb	3		;Transmit a zero, which is an escape character
 	clrf	TXREG		; "
