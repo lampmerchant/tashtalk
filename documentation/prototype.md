@@ -1,5 +1,5 @@
-TashTalk Prototype Details
-==========================
+TashTalk v1.x Prototype Details
+===============================
 
 Raspberry Pi
 ------------
