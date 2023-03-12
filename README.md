@@ -32,10 +32,16 @@ Also, "single-chip" doesn't include the separate and necessary driver/receiver c
 Building the firmware requires Microchip MPASM, which is included with their development environment, MPLAB.  Note that you **must** use MPLAB X version 5.35 or earlier or MPLAB 8 as later versions of MPLAB X have removed MPASM.
 
 
+## Differences Between v1.x and v2.x
+
+v1.x and v2.x use the same UART protocol, but the RA3 and RA5 pins differ in function between versions.  In v1.x, RA3 is used as the LocalTalk input and RA5 is used as the output.  In v2.x, RA5 is both input and output and RA3 is repurposed to act as !MCLR (the PIC's reset signal).  Pulling RA3/!MCLR low will hold the PIC in reset, tristating its outputs and allowing the associated RS-422 driver IC to be driven by another device.
+
+
 ## Projects Using It
 
 * [TashTalkHat](https://68kmla.org/bb/index.php?threads/tashtalk-single-chip-localtalk-interface.38955/page-4#post-422138)
   by bdurbrow - hat for Raspberry Pi
 * [AirTalk](https://68kmla.org/bb/index.php?threads/introducing-and-interest-check-airtalk-wireless-plug-and-play-localtalk-dongles.39661/)
   by cheesestraws - wireless plug-and-play LocalTalk dongle
+* [TashTalk 2 Hat](https://github.com/lampmerchant/tashtalk/tree/main/tashtalk2-rpihat) - hat for Raspberry Pi using v2.x firmware
 * Yours? =)
