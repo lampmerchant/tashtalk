@@ -36,6 +36,25 @@ The first byte following the 0x02 command byte determines whether the firmware w
 
 Note that 0x00 and 0xFF are not valid for use as node IDs on a LocalTalk network; the bits corresponding to these node IDs should never be set.  The former may not cause any problems, but the latter will prevent any broadcast data frames from being transmitted.
 
+#### 0x03 - Set Features
+
+*This command requires version 2.1.0 of the firmware or later.*
+
+This command byte determines which optional features are active.  It is followed by a single-byte bit field, the bits of which have the following significance:
+
+##### Bit 7: CRC Calculation
+
+When this bit is set, TashTalk will calculate CRCs for all outbound frames, not just for the control frames that it sends automatically.  When transmitting the frame to TashTalk over the UART, the two CRC bytes at the end of the frame must still be present, but they will be overwritten with the correct CRC for the frame.
+
+##### Bit 6: CRC Checking
+
+When this bit is set, TashTalk will check the CRCs for all inbound frames, not just for the control frames that it responds to automatically.  The frame data will be relayed to the host regardless of the CRC status, but if the CRC is incorrect, a different escape sequence (see *Escape Sequences* below) will follow the end of the frame.
+
+##### Bits 5-0: Reserved
+
+These bits are reserved for future optional features and should be maintained clear to ensure compatibility.
+
+
 
 TashTalk to Host
 ----------------
@@ -54,6 +73,8 @@ This sequence signifies a literal 0x00 byte in the frame being received.
 
 This sequence signifies the end of a frame where no exceptional conditions occurred.  The host should regard the data preceding it as an incoming frame, process it if its CRC is correct, and await the start of a new frame.
 
+If the *CRC Checking* feature is enabled, this sequence also signifies that the frame's CRC was correct.
+
 #### 0x00 0xFE - Framing Error
 
 This sequence signifies a framing error - a condition in which six consecutive '1' bits are received but cannot be interpreted as a flag byte.  The host should discard the data preceding it and await the start of a new frame.
@@ -61,3 +82,9 @@ This sequence signifies a framing error - a condition in which six consecutive '
 #### 0x00 0xFA - Frame Aborted
 
 This sequence signifies an aborted frame - a condition where a host had been transmitting a frame but unexpectedly stopped without a concluding flag byte.  The host should discard the data preceding it and await the start of a new frame.
+
+#### 0x00 0xFC - Frame CRC Check Failed
+
+*This sequence was introduced in version 2.1.0 of the firmware.*
+
+This sequence, which is only used when the *CRC Checking* feature is enabled (see *Set Features* command above), signifies the end of a frame which was structurally correct but had an incorrect CRC.  The host should discard the data preceding it and await the start of a new frame.
