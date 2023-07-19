@@ -13,7 +13,7 @@ BeagleBone or full PC, or it can be part of a larger embedded system. It slices,
 
 ## Project Status
 
-Stable enough to release a v1.0.0.
+Stable.
 
 
 ## Caveats
@@ -32,9 +32,29 @@ Also, "single-chip" doesn't include the separate and necessary driver/receiver c
 Building the firmware requires Microchip MPASM, which is included with their development environment, MPLAB.  Note that you **must** use MPLAB X version 5.35 or earlier or MPLAB 8 as later versions of MPLAB X have removed MPASM.
 
 
-## Differences Between v1.x and v2.x
+## Version Comparison
 
-v1.x and v2.x use the same UART protocol, but the RA3 and RA5 pins differ in function between versions.  In v1.x, RA3 is used as the LocalTalk input and RA5 is used as the output.  In v2.x, RA5 is both input and output and RA3 is repurposed to act as !MCLR (the PIC's reset signal).  Pulling RA3/!MCLR low will hold the PIC in reset, tristating its outputs and allowing the associated RS-422 driver IC to be driven by another device.
+**AirTalk users: do not upgrade your TashTalk PIC to v2.x, it will stop working because of the change in pinout.**
+
+| Version | Pinout                      | CRC Calculation                              |
+| ------- | --------------------------- | -------------------------------------------- |
+| v1.0    | RA3 input, RA5 output       | Self-generated frames only                   |
+| v2.0    | RA3 !MCLR, RA5 input/output | Self-generated frames only                   |
+| v2.1    | RA3 !MCLR, RA5 input/output | Self-generated frames, optionally all frames |
+
+
+### UART Protocol
+
+As of the time of this writing, the base UART protocol is unchanged between all available versions.  v2.1 adds the "Set Features"
+command, but this can be ignored and is not used by tashtalkd.
+
+
+### Pinout Change in v2.0
+
+This change was made in order to enable applications where it is desirable to disable LocalTalk and allow other circuitry to use
+the RS-422 driver - pulling RA3/!MCLR low will hold the PIC in reset, tristating its outputs.  Using RS-422 interface ICs such as
+the SN65HVD series, RA5 can be connected to both the receiver output and the driver input while RA4/Driver Enable is connected to
+both the (active low) receiver enable and the (active high) driver enable.
 
 
 ## Projects Using It
