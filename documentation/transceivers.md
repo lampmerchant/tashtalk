@@ -9,6 +9,10 @@ Not all of them do!  This is a non-exhaustive list of known-good ones.
 
 Used by Tashtari in breadboard testing.
 
+## [SN65HVD11](https://www.ti.com/product/SN65HVD11), [SN65HVD12](https://www.ti.com/product/SN65HVD12)
+
+Used by Tashtari in TashTalk v2.x Hat.
+
 ## [ISL83076E](https://www.renesas.com/us/en/products/interface-connectivity/rs-485-rs-422-rs-232/rs-485rs-422/standard-rs-485rs-422/isl83076e-15kv-esd-protected-33v-full-fail-safe-low-power-high-speed-or-slew-rate-limited-rs-485rs-422)
 
 Used by bdurbrow on TashTalkHat.
