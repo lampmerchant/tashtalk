@@ -465,8 +465,8 @@ PrepForNextFrame
 	lslf	DEF_HIST,F	; logs to make space for what happens this time
 	movf	GBACKOFF,W	;Copy the global backoff mask into the local
 	movwf	LBACKOFF	; backoff mask
-	movlw	33		;Set attempts counter to 32 (plus one since we
-	movwf	ATTEMPTS	; immediately decrement it)
+	movlw	32		;Set attempts counter to 32
+	movwf	ATTEMPTS	; "
 	bra	AwaitCommand	;We're set for the next frame, wait for it
 
 ;entered with BSR = 2
@@ -1352,7 +1352,7 @@ SendPoL	DNOP			;32-33
 	movlw	B'00101010'	;33 Get ready to tristate LT pin
 	tris	5		;34 Tristate LT pin
 	bcf	LATA,4		;00 Switch transceiver to receive mode
-	return			;End transmission
+	bra	SendPoW		;01-02 Go wait for the line to return to idle
 SendPoZ	nop			;34
 	bcf	LATA,5		;00 Drive bus to 0
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
@@ -1360,6 +1360,10 @@ SendPoZ	nop			;34
 	movlw	B'00101010'	;33 Get ready to tristate LT pin
 	tris	5		;34 Tristate LT pin
 	bcf	LATA,4		;00 Switch transceiver to receive mode
+	DNOP			;01-02
+SendPoW	call	SendDoUartSvc	;03-04 (05-16) Service the UART receiver while
+	call	SendDoUartSvc	;17-18 (19-30)  we wait for the LocalTalk bus
+	call	SendDoUartSvc	;31-32 (33-44)  to go high/idle again
 	return			;End transmission
 
 SendByteStuff
