@@ -160,6 +160,13 @@ CHKCRC	equ	6	;Set if receiver should check CRC and signal bad CRCs
 	
 	endc
 
+	;Linear Memory:
+	;0x2000-0x207F - UART receiver queue
+	;0x2080-0x209F - Node ID bitmap
+	;0x20A0-0x20AE - Bank 2 registers
+	;0x20AF-0x20EA - Unused
+	;0x20EB-0x20EF - Upper end of bank 2 registers
+
 
 ;;; Vectors ;;;
 
@@ -203,20 +210,24 @@ Init
 	movlw	B'11110000'
 	movwf	OSCCON
 	
+	banksel	OSCSTAT		;Spin until PLL is ready and instruction clock
+	btfss	OSCSTAT,PLLR	; gears up to 8 MHz
+	bra	$-1
+	
 	banksel	IOCAN		;RA5 sets IOCAN[IOCAF5] on pos/neg edge
 	movlw	B'00100000'
 	movwf	IOCAN
 	movwf	IOCAP
 	
-	banksel	RCSTA		;UART async mode, 1 MHz
-	movlw	B'01001000'
+	banksel	RCSTA		;UART async mode, 1 MHz, but receiver not
+	movlw	B'01001000'	; enabled just yet
 	movwf	BAUDCON
 	clrf	SPBRGH
 	movlw	7
 	movwf	SPBRGL
 	movlw	B'00100110'
 	movwf	TXSTA
-	movlw	B'10010000'
+	movlw	B'10000000'
 	movwf	RCSTA
 	
 	banksel	OPTION_REG	;Timer0 uses instruction clock
@@ -242,12 +253,26 @@ Init
 	movlw	B'00101010'
 	movwf	TRISA
 	
-	clrf	UR_LEN		;Set up UART receiver queue (0x2000-0x207F),
-	movlw	0x20		; for which FSRs are push (FSR0) and pop (FSR1)
-	movwf	FSR0H		; pointers
+	movlw	0x20		;Set FSRs to point permanently to linear memory
+	movwf	FSR0H
 	movwf	FSR1H
-	clrf	FSR0L
-	clrf	FSR1L
+	
+	movlw	0x80		;Zero out node ID bitmap (0x2080-0x209F) so we
+	movwf	FSR1L		; don't respond to random IDs before the host
+	movlw	0		; gets a chance to initialize us
+ZeroNID	movwi	FSR1++
+	btfss	FSR1L,5
+	bra	ZeroNID
+	
+	clrf	UR_LEN		;Set up UART receiver queue (0x2000-0x207F),
+	clrf	FSR0L		; for which FSRs are push (FSR0) and pop (FSR1)
+	clrf	FSR1L		; pointers
+	
+	clrf	FEATURES	;All optional features off to start
+	clrf	LR_CCRC1	;Receiver CRC registers cleared to ones to
+	decf	LR_CCRC1,F	; start, we don't have time to do this when we
+	clrf	LR_CCRC2	; jump into the code
+	decf	LR_CCRC2,F
 	
 	banksel	PIE1		;UART Rx and IOC interrupts on, interrupt
 	movlw	B'00100000'	; subsystem on
@@ -255,11 +280,8 @@ Init
 	movlw	B'11001000'
 	movwf	INTCON
 	
-	clrf	FEATURES	;All optional features off to start
-	clrf	LR_CCRC1	;Receiver CRC registers cleared to ones to
-	decf	LR_CCRC1,F	; start, we don't have time to do this when we
-	clrf	LR_CCRC2	; jump into the code
-	decf	LR_CCRC2,F
+	banksel	RCSTA		;Enable receiver now that interrupt is on
+	bsf	RCSTA,CREN
 	
 	bra	PrepForNextFrame
 
@@ -1352,7 +1374,7 @@ SendPoL	DNOP			;32-33
 	movlw	B'00101010'	;33 Get ready to tristate LT pin
 	tris	5		;34 Tristate LT pin
 	bcf	LATA,4		;00 Switch transceiver to receive mode
-	bra	SendPoW		;01-02 Go wait for the line to return to idle
+	bra	SendPoW		;Go wait for the line to return to idle
 SendPoZ	nop			;34
 	bcf	LATA,5		;00 Drive bus to 0
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
@@ -1360,10 +1382,14 @@ SendPoZ	nop			;34
 	movlw	B'00101010'	;33 Get ready to tristate LT pin
 	tris	5		;34 Tristate LT pin
 	bcf	LATA,4		;00 Switch transceiver to receive mode
-	DNOP			;01-02
-SendPoW	call	SendDoUartSvc	;03-04 (05-16) Service the UART receiver while
-	call	SendDoUartSvc	;17-18 (19-30)  we wait for the LocalTalk bus
-	call	SendDoUartSvc	;31-32 (33-44)  to go high/idle again
+SendPoW	call	SendDoUartSvc	;Service the UART receiver while we wait for
+	movlb	0		; the LocalTalk bus to go high/idle again for
+	btfss	PORTA,5		; two consecutive reads, this protects us
+	bra	SendPoW		; against interpreting the not-idle line as a
+	call	SendDoUartSvc	; frame and preventing ourselves from sending
+	movlb	0		; any data
+	btfss	PORTA,5		; "
+	bra	SendPoW		; "
 	return			;End transmission
 
 SendByteStuff
