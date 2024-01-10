@@ -1710,7 +1710,20 @@ InFErr
 	clrf	TXREG		; "
 	movlw	0xFE		;Transmit 0xFE, which signifies 'Frame Error'
 	movwf	TXREG		; "
-	bra	FinishUp
+	;fall through
+
+OutLostClock
+EmpLostClock
+FinishUp
+	movlb	0		;If the frame regs changed, deactivate Timer2
+	btfss	FLAGS,LR_FRM	; and clear its interrupt flag so anything that
+	bra	Finish2		; was waiting for it knows that a frame was
+	bcf	T2CON,TMR2ON	; received while waiting
+	bcf	PIR1,TMR2IF	; "
+Finish2	movf	FSR0L,W		;Store the changed UART receiver push point
+	movlb	31		; back in its shadow register so it stays the
+	movwf	FSR0L_SHAD	; same when we return from interrupt
+	retfie
 
 InLostClock
 	movlb	0		;Wait until the UART transmitter is ready for
@@ -1725,17 +1738,6 @@ InLostClock
 	movlw	0xFA		; "
 	movwf	TXREG		; "
 	bra	FinishUp
-
-OutLostClock
-EmpLostClock
-FinishUp
-	movlb	0		;Deactivate Timer2 and clear its interrupt flag
-	bcf	T2CON,TMR2ON	; so anything that was waiting for it knows
-	bcf	PIR1,TMR2IF	; that a receive event happened while waiting
-	movf	FSR0L,W		;Store the changed UART receiver push point
-	movlb	31		; back in its shadow register so it stays the
-	movwf	FSR0L_SHAD	; same when we return from interrupt
-	retfie
 
 
 ;;; LocalTalk Receiver State Machines ;;;
