@@ -1374,7 +1374,7 @@ SendPoL	DNOP			;32-33
 	movlw	B'00101010'	;33 Get ready to tristate LT pin
 	tris	5		;34 Tristate LT pin
 	bcf	LATA,4		;00 Switch transceiver to receive mode
-	bra	SendPoW		;Go wait for the line to return to idle
+	return			;End transmission
 SendPoZ	nop			;34
 	bcf	LATA,5		;00 Drive bus to 0
 	call	SendDoUartSvc	;01-02 (03-14) Service the UART receiver
@@ -1382,14 +1382,6 @@ SendPoZ	nop			;34
 	movlw	B'00101010'	;33 Get ready to tristate LT pin
 	tris	5		;34 Tristate LT pin
 	bcf	LATA,4		;00 Switch transceiver to receive mode
-SendPoW	call	SendDoUartSvc	;Service the UART receiver while we wait for
-	movlb	0		; the LocalTalk bus to go high/idle again for
-	btfss	PORTA,5		; two consecutive reads, this protects us
-	bra	SendPoW		; against interpreting the not-idle line as a
-	call	SendDoUartSvc	; frame and preventing ourselves from sending
-	movlb	0		; any data
-	btfss	PORTA,5		; "
-	bra	SendPoW		; "
 	return			;End transmission
 
 SendByteStuff
@@ -1861,10 +1853,12 @@ InFErr
 OutLostClock
 EmpLostClock
 FinishUp
-	movlb	0		;Deactivate Timer2 and clear its interrupt flag
-	bcf	T2CON,TMR2ON	; so anything that was waiting for it knows
-	bcf	PIR1,TMR2IF	; that a receive event happened while waiting
-	clrf	LR_CCRC1	;Clear receiver CRC registers to ones since we
+	movlb	0		;If the frame regs changed, deactivate Timer2
+	btfss	FLAGS,LR_FRM	; and clear its interrupt flag so anything that
+	bra	Finish2		; was waiting for it knows that a frame was
+	bcf	T2CON,TMR2ON	; received while waiting
+	bcf	PIR1,TMR2IF	; "
+Finish2	clrf	LR_CCRC1	;Clear receiver CRC registers to ones since we
 	decf	LR_CCRC1,F	; don't have time to do this when we jump into
 	clrf	LR_CCRC2	; the receiver
 	decf	LR_CCRC2,F	; "
