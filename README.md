@@ -34,15 +34,43 @@ Building the firmware requires Microchip MPASM, which is included with their dev
 
 ## PCBs and Products
 
-* [TashTalkHat](https://68kmla.org/bb/index.php?threads/tashtalk-single-chip-localtalk-interface.38955/page-4#post-422138)
-  by bdurbrow - hat for Raspberry Pi using v1.x firmware
-* [AirTalk](https://68kmla.org/bb/index.php?threads/introducing-and-interest-check-airtalk-wireless-plug-and-play-localtalk-dongles.39661/)
-  by cheesestraws - wireless plug-and-play LocalTalk dongle
-   * [Buy](https://airtalk.shop/product/airtalk-complete/) from [airtalk.shop](https://airtalk.shop/)
-* [TashTalk 2 Hat](https://github.com/lampmerchant/tashtalk/tree/main/tashtalk2-rpihat) - hat for Raspberry Pi using v2.x firmware
-   * Buy [fully assembled](https://ko-fi.com/s/4d01fa5b8a) or as kit with [regular](https://ko-fi.com/s/60b561a0e3) or
-     [stackable](https://ko-fi.com/s/64219426b8) header from [Tashtari](https://ko-fi.com/tashtari)
-* Yours? =)
+### End User Hardware
+
+* [AirTalk](https://68kmla.org/bb/index.php?threads/introducing-and-interest-check-airtalk-wireless-plug-and-play-localtalk-dongles.39661/) by [cheesestraws](https://68kmla.org/bb/index.php?members/cheesestraws.19339/)
+  * Plug-and-play WiFi-LocalTalk dongle
+  * [Buy](https://airtalk.shop/product/airtalk-complete/) from [airtalk.shop](https://airtalk.shop/)
+
+### Serial Adapters
+
+* TashTalkHat by [bdurbrow](https://68kmla.org/bb/index.php?members/bdurbrow.6275/)
+  * Raspberry Pi hat using v1.x firmware
+  * Pending release
+  * [Forum post](https://68kmla.org/bb/index.php?threads/tashtalk-single-chip-localtalk-interface.38955/page-4#post-422138)
+* TashTalk 2 Hat by [Tashtari](https://github.com/lampmerchant)
+  * Raspberry Pi hat using v2.x firmware
+  * [Files](https://github.com/lampmerchant/tashtalk/tree/main/tashtalk2-rpihat)
+  * See latest release in this repository for gerbers
+  * Buy [fully assembled](https://ko-fi.com/s/4d01fa5b8a) or as kit with [regular](https://ko-fi.com/s/60b561a0e3) or [stackable](https://ko-fi.com/s/64219426b8) header from [Tashtari](https://ko-fi.com/tashtari)
+* USB2LT by [twelvetone12](https://68kmla.org/bb/index.php?members/twelvetone12.23810/)
+  * USB serial adapter using v2.x firmware
+  * Pending release
+  * [Forum thread](https://68kmla.org/bb/index.php?threads/usb2lt-tashtalk-usb-to-localtalk.45282/)
+ 
+### Software
+
+* tashtalkd by [Tashtari](https://github.com/lampmerchant)
+  * Simple LocalTalk (via TashTalk) to LToUDP bridge
+  * [Files](https://github.com/lampmerchant/tashtalk/tree/main/tashtalkd)
+* MultiTalk by [sfiera](https://github.com/sfiera/)
+  * Bridge between EtherTalk and LocalTalk (via LToUDP and TashTalk)
+  * [Project page](https://github.com/sfiera/multitalk/)
+* TashRouter by [Tashtari](https://github.com/lampmerchant)
+  * Full-fledged AppleTalk router supporting EtherTalk and LocalTalk (via LToUDP and TashTalk)
+  * [Project page](https://github.com/lampmerchant/tashrouter/)
+
+### Yours?
+
+File a PR or an issue to add to these lists!
 
 
 ## Version Comparison
