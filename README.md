@@ -32,6 +32,19 @@ Also, "single-chip" doesn't include the separate and necessary driver/receiver c
 Building the firmware requires Microchip MPASM, which is included with their development environment, MPLAB.  Note that you **must** use MPLAB X version 5.35 or earlier or MPLAB 8 as later versions of MPLAB X have removed MPASM.
 
 
+## PCBs and Products
+
+* [TashTalkHat](https://68kmla.org/bb/index.php?threads/tashtalk-single-chip-localtalk-interface.38955/page-4#post-422138)
+  by bdurbrow - hat for Raspberry Pi using v1.x firmware
+* [AirTalk](https://68kmla.org/bb/index.php?threads/introducing-and-interest-check-airtalk-wireless-plug-and-play-localtalk-dongles.39661/)
+  by cheesestraws - wireless plug-and-play LocalTalk dongle
+   * [Buy](https://airtalk.shop/product/airtalk-complete/) from [airtalk.shop](https://airtalk.shop/)
+* [TashTalk 2 Hat](https://github.com/lampmerchant/tashtalk/tree/main/tashtalk2-rpihat) - hat for Raspberry Pi using v2.x firmware
+   * Buy [fully assembled](https://ko-fi.com/s/4d01fa5b8a) or as kit with [regular](https://ko-fi.com/s/60b561a0e3) or
+     [stackable](https://ko-fi.com/s/64219426b8) header from [Tashtari](https://ko-fi.com/tashtari)
+* Yours? =)
+
+
 ## Version Comparison
 
 **AirTalk users: do not upgrade your TashTalk PIC to v2.x, it will stop working because of the change in pinout.**
@@ -55,13 +68,3 @@ This change was made in order to enable applications where it is desirable to di
 the RS-422 driver - pulling RA3/!MCLR low will hold the PIC in reset, tristating its outputs.  Using RS-422 interface ICs such as
 the SN65HVD series, RA5 can be connected to both the receiver output and the driver input while RA4/Driver Enable is connected to
 both the (active low) receiver enable and the (active high) driver enable.
-
-
-## Projects Using It
-
-* [TashTalkHat](https://68kmla.org/bb/index.php?threads/tashtalk-single-chip-localtalk-interface.38955/page-4#post-422138)
-  by bdurbrow - hat for Raspberry Pi
-* [AirTalk](https://68kmla.org/bb/index.php?threads/introducing-and-interest-check-airtalk-wireless-plug-and-play-localtalk-dongles.39661/)
-  by cheesestraws - wireless plug-and-play LocalTalk dongle
-* [TashTalk 2 Hat](https://github.com/lampmerchant/tashtalk/tree/main/tashtalk2-rpihat) - hat for Raspberry Pi using v2.x firmware
-* Yours? =)
