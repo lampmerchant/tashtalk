@@ -13,7 +13,7 @@ BeagleBone or full PC, or it can be part of a larger embedded system. It slices,
 
 ## Project Status
 
-Stable.
+Stable and fairly battle-tested.
 
 
 ## Caveats
@@ -29,7 +29,8 @@ Also, "single-chip" doesn't include the separate and necessary driver/receiver c
 
 ## Building Firmware
 
-Building the firmware requires Microchip MPASM, which is included with their development environment, MPLAB.  Note that you **must** use MPLAB X version 5.35 or earlier or MPLAB 8 as later versions of MPLAB X have removed MPASM.
+Building the firmware requires Microchip MPASM, which is included with their development environment, MPLAB.  Note that you
+**must** use MPLAB X version 5.35 or earlier or MPLAB 8 as later versions of MPLAB X have removed MPASM.
 
 
 ## PCBs and Products
@@ -39,6 +40,7 @@ Building the firmware requires Microchip MPASM, which is included with their dev
 * [AirTalk](https://68kmla.org/bb/index.php?threads/introducing-and-interest-check-airtalk-wireless-plug-and-play-localtalk-dongles.39661/) by [cheesestraws](https://68kmla.org/bb/index.php?members/cheesestraws.19339/)
   * Plug-and-play WiFi-LocalTalk dongle
   * [Buy](https://airtalk.shop/product/airtalk-complete/) from [airtalk.shop](https://airtalk.shop/)
+
 
 ### Serial Adapters
 
@@ -55,6 +57,7 @@ Building the firmware requires Microchip MPASM, which is included with their dev
   * USB serial adapter using v2.x firmware
   * Pending release
   * [Forum thread](https://68kmla.org/bb/index.php?threads/usb2lt-tashtalk-usb-to-localtalk.45282/)
+
  
 ### Software
 
@@ -67,6 +70,10 @@ Building the firmware requires Microchip MPASM, which is included with their dev
 * TashRouter by [Tashtari](https://github.com/lampmerchant)
   * Full-fledged AppleTalk router supporting EtherTalk and LocalTalk (via LToUDP and TashTalk)
   * [Project page](https://github.com/lampmerchant/tashrouter/)
+* PicoATP by [Tashtari](https://github.com/lampmerchant)
+  * Tiny AppleTalk stack for PIC12F1840 and other 8-bit mid-range core PICs
+  * [Project page](https://github.com/lampmerchant/picoatp)
+
 
 ### Yours?
 
@@ -75,7 +82,9 @@ File a PR or an issue to add to these lists!
 
 ## Version Comparison
 
-**AirTalk users: do not upgrade your TashTalk PIC to v2.x, it will stop working because of the change in pinout.**
+**AirTalk users:** do **not** upgrade your TashTalk PIC to v2.x, it will stop working because of the change in pinout.  See
+the Compatibility Fix section below if you are having issues with Power Macintosh 6100 computers or certain LocalTalk
+printers.
 
 | Version | Pinout                      | CRC Calculation                              |
 | ------- | --------------------------- | -------------------------------------------- |
@@ -84,15 +93,29 @@ File a PR or an issue to add to these lists!
 | v2.1    | RA3 !MCLR, RA5 input/output | Self-generated frames, optionally all frames |
 
 
-### UART Protocol
-
-As of the time of this writing, the base UART protocol is unchanged between all available versions.  v2.1 adds the "Set Features"
-command, but this can be ignored and is not used by tashtalkd.
-
-
 ### Pinout Change in v2.0
 
-This change was made in order to enable applications where it is desirable to disable LocalTalk and allow other circuitry to use
-the RS-422 driver - pulling RA3/!MCLR low will hold the PIC in reset, tristating its outputs.  Using RS-422 interface ICs such as
-the SN65HVD series, RA5 can be connected to both the receiver output and the driver input while RA4/Driver Enable is connected to
-both the (active low) receiver enable and the (active high) driver enable.
+This change was made in order to enable applications where it is desirable to disable LocalTalk and allow other circuitry to
+use the RS-422 driver - pulling RA3/!MCLR low will hold the PIC in reset, tristating its outputs.  Using RS-422 interface ICs
+such as the SN65HVD series, RA5 can be connected to both the receiver output and the driver input while RA4/Driver Enable is
+connected to both the (active low) receiver enable and the (active high) driver enable.
+
+
+### UART Protocol
+
+As of the time of this writing, the base UART protocol is unchanged between all available versions.  v2.1 adds the "Set
+Features" command, but this can be ignored and is not used by tashtalkd.
+
+
+### Internal Calculation of CRC
+
+v2.1 adds optional calculation and checking of the frame CRC.  As of the time of this writing, this is known to be used only
+by [PicoATP](https://github.com/lampmerchant/picoatp).
+
+
+### Compatibility Fix
+
+[v2.1.3](https://github.com/lampmerchant/tashtalk/releases/tag/v2.1.3) adds a fix for compatibility with the Power Macintosh
+6100 and certain LocalTalk printers (possibly other devices as well).  This fix has also been backported to v1.x in
+[v1.0.1](https://github.com/lampmerchant/tashtalk/releases/tag/v1.0.1) for AirTalk users and other users of devices based
+around the v1.x pinout.  See the release notes for details.
