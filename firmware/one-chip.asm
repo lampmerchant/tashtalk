@@ -10,14 +10,14 @@
 
 ;;; Connections ;;;
 
-;;;                                                               ;;;
-;                               .--------.                          ;
-;                       Supply -|01 \/ 08|- Ground                  ;
-;        LocalTalk <-->    RA5 -|02    07|- RA0/TX ---> UART TX     ;
-;    Driver Enable <---    RA4 -|03    06|- RA1/RX <--- UART RX     ;
-;            !MCLR --->    RA3 -|04    05|- RA2    ---> UART CTS    ;
-;                               '--------'                          ;
-;;;                                                               ;;;
+;;;                                                                        ;;;
+;                               .--------.                                   ;
+;                       Supply -|01 \/ 08|- Ground                           ;
+;        LocalTalk <-->    RA5 -|02    07|- RA0/TX ---> UART Out             ;
+;    Driver Enable <---    RA4 -|03    06|- RA1/RX <--- UART In              ;
+;            !MCLR --->    RA3 -|04    05|- RA2    ---> UART Flow Control    ;
+;                               '--------'                                   ;
+;;;                                                                        ;;;
 
 
 ;;; Assembler Directives ;;;
