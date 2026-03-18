@@ -46,9 +46,13 @@ This command byte determines which optional features are active.  It is followed
 
 When this bit is set, TashTalk will calculate CRCs for all outbound frames, not just for the control frames that it sends automatically.  When transmitting the frame to TashTalk over the UART, the two CRC bytes at the end of the frame must still be present, but they will be overwritten with the correct CRC for the frame.
 
+There is no performance penalty to using this feature, as TashTalk calculates the CRC in either case but only uses this calculated CRC if this feature is enabled.  Note, however, that if this feature is used and a data bit is flipped in communication between the host and TashTalk, a correct CRC will be computed for the incorrect data.  As such, any host able to compute CRCs on its own should do so rather than using this feature.
+
 ##### Bit 6: CRC Checking
 
 When this bit is set, TashTalk will check the CRCs for all inbound frames, not just for the control frames that it responds to automatically.  The frame data will be relayed to the host regardless of the CRC status, but if the CRC is incorrect, a different escape sequence (see *Escape Sequences* below) will follow the end of the frame.
+
+There is no performance penalty to using this feature, as TashTalk checks the CRC in either case but only reports an error if this feature is enabled.
 
 ##### Bits 5-0: Reserved
 
