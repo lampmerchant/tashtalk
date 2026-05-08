@@ -57,6 +57,10 @@ Building the firmware requires Microchip MPASM, which is included with their dev
   * USB serial adapter using v2.x firmware
   * Pending release
   * [Forum thread](https://68kmla.org/bb/index.php?threads/usb2lt-tashtalk-usb-to-localtalk.45282/)
+* TashTalk USB by [FeralFirmware](https://github.com/feralfirmware)
+  * USB serial adapter using v2.x firmware
+  * [Schematics and PCB files](https://github.com/FeralFirmware/TailTalk/tree/main/TashTalkUSB)
+  * [Forum thread](https://68kmla.org/bb/threads/tashtalk-usb.52115/) 
 
  
 ### Software
@@ -73,7 +77,10 @@ Building the firmware requires Microchip MPASM, which is included with their dev
 * PicoATP by [Tashtari](https://github.com/lampmerchant)
   * Tiny AppleTalk stack for PIC12F1840 and other 8-bit mid-range core PICs
   * [Project page](https://github.com/lampmerchant/picoatp)
-
+* TailTalk by [FeralFirmware](https://github.com/feralfirmware)
+  * Userspace Rust library for AppleTalk supporting EtherTalk and LocalTalk (via TashTalk)
+  * Rust library for driving TashTalk itself: [docs.rs](https://docs.rs/tashtalk/0.2.0/tashtalk/)
+  * [Project page](https://github.com/feralfirmware/tailtalk)
 
 ### Yours?
 
