@@ -52,7 +52,6 @@ Building the firmware requires Microchip MPASM, which is included with their dev
   * Raspberry Pi hat using v2.x firmware
   * [Files](https://github.com/lampmerchant/tashtalk/tree/main/tashtalk2-rpihat)
   * See latest release in this repository for gerbers
-  * Buy [fully assembled](https://ko-fi.com/s/4d01fa5b8a) or as kit with [regular](https://ko-fi.com/s/60b561a0e3) or [stackable](https://ko-fi.com/s/64219426b8) header from [Tashtari](https://ko-fi.com/tashtari)
 * USB2LT by [twelvetone12](https://68kmla.org/bb/index.php?members/twelvetone12.23810/)
   * USB serial adapter using v2.x firmware
   * Pending release
@@ -81,6 +80,7 @@ Building the firmware requires Microchip MPASM, which is included with their dev
   * Userspace Rust library for AppleTalk supporting EtherTalk and LocalTalk (via TashTalk)
   * Rust library for driving TashTalk itself: [docs.rs](https://docs.rs/tashtalk/0.2.0/tashtalk/)
   * [Project page](https://github.com/feralfirmware/tailtalk)
+
 
 ### Yours?
 
